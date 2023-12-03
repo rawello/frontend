@@ -1,44 +1,33 @@
 export const geometry = {
-  drwRectangle: function (
-    ref,
-    x = 10,
-    y = 10,
-    width = 100,
-    height = 100,
-    type,
-    widthLine = 2
-  ) {
+  drwRectangle: function (ref, x = 10, y = 10, width = 100, height = 100, type, color, widthLine = 2) {
     //fillRect(x, y, width, height)
     const canvas = ref;
-    const ctx = canvas.getContext("2d");
-    console.log("arguments",type);
+    const ctx = canvas.getContext('2d');
+    console.log('arguments', type);
+    ctx.fillStyle = color;
+    ctx.shadowOffsetX = 0;
+    ctx.shadowOffsetY = 0;
+    ctx.shadowBlur = 0;
+
     switch (type) {
-      case "stroke": {
+      case 'stroke': {
         ctx.strokeRect(x, y, width, height);
         return;
       }
-      case "fill": {
+      case 'fill': {
         ctx.fillRect(x, y, width, height);
         return;
       }
       default:
-        console.log("insertType:fill|stroke");
+        console.log('insertType:fill|stroke');
         return;
     }
   },
-  drwLine: function (
-    ref,
-    x1 = 10,
-    y1 = 10,
-    x2 = 50,
-    y2 = 10,
-    color = "grey",
-    widthLine = 8
-  ) {
-    console.log("ref",ref)
+  drwLine: function (ref, x1 = 10, y1 = 10, x2 = 50, y2 = 10, color = 'grey', widthLine = 8) {
+    console.log('ref', ref);
     const canvas = ref;
-    const ctx = canvas.getContext("2d");
-     ctx.beginPath();
+    const ctx = canvas.getContext('2d');
+    ctx.beginPath();
     // координаты начала линии X,Y
     ctx.moveTo(x1, y1);
     // команда рисования линии с координатами конца линии
