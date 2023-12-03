@@ -4,7 +4,7 @@ export const customRouter = (hook) => {
   hook(data);
 };
 
-const api = 'http://26.140.209.161:8000/';
+const api = 'https://django-seu8.onrender.com';
 export function addRouteToDbFromFront(data) {
   axios
     .post(`${api}addRouteToDbFromFront`, data)
