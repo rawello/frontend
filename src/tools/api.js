@@ -4,7 +4,7 @@ export const customRouter = (hook) => {
   hook(data);
 };
 
-const api = 'https://django-seu8.onrender.com';
+const api = 'http://26.140.209.161:8000/';
 export function addRouteToDbFromFront(data) {
   axios
     .post(`${api}addRouteToDbFromFront`, data)
@@ -41,6 +41,16 @@ export function saveFrontObject(data) {
 export async function getRoute(user, build) {
   try {
     const response = await axios.get(`${api}getObj/${user}/${build}`);
+    return response.data;
+  } catch (error) {
+    console.error(error);
+    throw error;
+  }
+}
+
+export async function getQrCodeApi(build, start) {
+  try {
+    const response = await axios.get(`${api}generateQR/${build}/${start}`);
     return response.data;
   } catch (error) {
     console.error(error);

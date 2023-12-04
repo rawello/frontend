@@ -3,7 +3,7 @@ import { geometry } from "../toolsGeomentry/getRectangle";
 import { Menu, Dropdown, Button, Input } from "antd";
 import { DownOutlined, UserOutlined } from "@ant-design/icons";
 import axios from "axios";
-import { addRouteToDbFromFront, customRouter, editRoute, getRoute, saveFrontObject } from "../tools/api";
+import { addRouteToDbFromFront, customRouter, editRoute, getQrCodeApi, getRoute, saveFrontObject } from "../tools/api";
 
 // function createElement(ref, x1, y1, x2, y2) {
 //   console.log('create element ', x1, y1, x2, y2);
@@ -30,30 +30,28 @@ const FieldCanvas = () => {
   const [build, setBuild] = useState("");
   const [routeData, setGetRouteData] = useState();
   const [nameNewBuild, setNameNewBuild] = useState("");
+  const [floors, setFloors] = useState([1]);
+  const [waypointQr, setWaypointQr] = useState();
+  const [linkqr, setlinkQr] = useState("");
   useEffect(() => {
     renderGeometry();
   });
 
   const menu = (
     <Menu>
-      <Menu.Item
-        onClick={() => {
-          setFloor(1);
-          cachingFloor();
-        }}
-        key="1"
-      >
-        Этаж 1
-      </Menu.Item>
-      <Menu.Item
-        onClick={() => {
-          setFloor(2);
-          cachingFloor();
-        }}
-        key="2"
-      >
-        Этаж 2
-      </Menu.Item>
+      {floors.map((item) => {
+        return (
+          <Menu.Item
+            onClick={() => {
+              setFloor(item);
+              cachingFloor();
+            }}
+            key={item}
+          >
+            Этаж {item}
+          </Menu.Item>
+        );
+      })}
     </Menu>
   );
 
@@ -66,6 +64,7 @@ const FieldCanvas = () => {
     let data = svgData;
     let cache = { ...maps, [floorCurrent]: data };
     setMaps(cache);
+    console.log("check", cache);
     return cache;
   }
 
@@ -84,7 +83,6 @@ const FieldCanvas = () => {
     let ctx = canvas.getContext("2d");
     ctx.clearRect(0, 0, canvas.width, canvas.height);
     elements.forEach(({ floor, x1, y1, x2, y2, typeInstr, axis, color, lineWidth }) => {
-      console.log(floor == floor);
       if (floorCurrent == floor) {
         switch (typeInstr) {
           case "line": {
@@ -135,7 +133,7 @@ const FieldCanvas = () => {
 
   function handleMouseDown(event) {
     const { clientX, clientY } = event;
-
+    cachingFloor();
     if (typeInstrument === "selection") {
       console.log("prevId", prevId);
 
@@ -143,7 +141,6 @@ const FieldCanvas = () => {
       const x = pointOnCanvas(clientX, clientY).x;
       const y = pointOnCanvas(clientX, clientY).y;
       const element = getElementAtPosition(x, y, elements);
-      console.log("elemenbt", element);
       if (element) {
         setSelectedElement(element);
         setPrevId({ id: element.id, color: element.color });
@@ -296,31 +293,42 @@ const FieldCanvas = () => {
     const fetchData = async () => {
       try {
         const result = await getRoute(login, build); // Замените user и build на ваши значения
-
-        setGetRouteData(result);
-        setElements(result.obj);
+        if (result.obj.length !== 0) {
+          setGetRouteData(result);
+          setFloors(JSON.parse(result.floors));
+          setElements(result.obj);
+        }
       } catch (error) {
         console.error("Ошибка получения данных:", error);
       }
     };
 
     fetchData();
+  }
 
-    //console.log(getRoute(login, build));
-    //console.log("oldFagot",routeData,customRouter(setGetRouteData))
-    // axios
-    //   .get('http://26.140.209.161:8000/getRoute/rawello/college')
-    //   .then(function (response) {
-    //     // handle success
-    //     console.log(response);
-    //   })
-    //   .catch(function (error) {
-    //     // handle error
-    //     console.log(error);
-    //   })
-    //   .then(function () {
-    //     // always executed
-    //   });
+  function getQrCode() {
+    console.log("waypointQr", waypointQr);
+    if (build.length == 0) {
+      alert("Введите название здания");
+      return;
+    }
+    if (!waypointQr) {
+      alert("Выберите точку");
+      return;
+    }
+    const getQr = async () => {
+      try {
+        const result = await getQrCodeApi(build, waypointQr.key); // Замените user и build на ваши значения
+        console.log("result", result);
+        var link = `http://26.140.209.161:8000/generateQR/${build}/${waypointQr.key}`;
+        setlinkQr(link);
+        window.location.href = link;
+        window.open(link);
+      } catch (error) {
+        console.error("Ошибка получения данных:", error);
+      }
+    };
+    getQr();
   }
 
   function prepareImageMap() {
@@ -329,19 +337,21 @@ const FieldCanvas = () => {
       alert("Введите имя здания");
       return;
     }
+    console.log("cachingFloor", floorCurrent, maps, floorCurrent in maps);
+    cachingFloor();
     if (floorCurrent in maps) {
     } else {
       const forMap = cachingFloor();
       for (let key in forMap) {
         mapsReady.push(forMap[key]);
       }
-      console.log("cachingFloor", forMap, mapsReady);
     }
-
+    console.log("mapsReady", mapsReady);
     const data = {
-      svg: mapsReady,
+      svg: maps,
       build: nameNewBuild,
       obj: elements,
+      floors: floors,
       rooms: {
         ...waypoints,
         qr: [1, [227, 154]],
@@ -367,9 +377,10 @@ const FieldCanvas = () => {
     }
 
     const data = {
-      svg: mapsReady,
+      svg: JSON.stringify(mapsReady),
       build: build,
       obj: elements,
+      floors: floors,
       rooms: {
         ...waypoints,
       },
@@ -377,6 +388,14 @@ const FieldCanvas = () => {
     };
     editRoute(data);
   }
+  function manageFloors() {
+    const lastFloor = floors[floors.length - 1];
+    setFloors([...floors, lastFloor + 1]);
+    setFloor(lastFloor + 1);
+    cachingFloor();
+    console.log("floors", floors);
+  }
+
   return (
     <div>
       <div style={{ display: "flex", padding: 5 }}>
@@ -449,12 +468,27 @@ const FieldCanvas = () => {
               Этаж {floorCurrent} <DownOutlined />
             </Button>
           </Dropdown>
+          <Button type="primary" onClick={manageFloors}>
+            Добавить этаж
+          </Button>
           <Input placeholder="Логин" onChange={(value) => setLogin(value.target.value)} />
           <Input placeholder="Здание" onChange={(value) => setBuild(value.target.value)} />
           <Button type="primary" onClick={getRouteUser}>
-            Submit
+            Загрузить здание
           </Button>
+          <Input placeholder="Здание" onChange={(value) => setBuild(value.target.value)} />
+          <Button type="primary" onClick={getQrCode}>
+            Получить QR
+          </Button>
+          {Object.keys(waypoints).map((key) => (
+            <Button onClick={() => setWaypointQr({ key, point: waypoints[key][1] })} type="text" block>
+              {console.log("render", waypointQr)}
+              {key}
+            </Button>
+          ))}
         </div>
+        {!linkqr.length == 0 ? <img src={linkqr} width={256} height={256} /> : null}
+
         <canvas id={"canvas"} onMouseDown={handleMouseDown} onMouseMove={handleMouseMove} onMouseUp={handleMouseUp} ref={canvasRef} width={512} height={512} style={{ border: "0.5px solid black" }} />
       </div>
       <Input size="small" style={{ width: 234 }} placeholder="Название здания" onChange={(value) => setNameNewBuild(value.target.value)} />
