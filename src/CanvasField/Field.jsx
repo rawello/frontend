@@ -337,7 +337,6 @@ const FieldCanvas = () => {
       alert("Введите имя здания");
       return;
     }
-    console.log("cachingFloor", floorCurrent, maps, floorCurrent in maps);
     cachingFloor();
     if (floorCurrent in maps) {
     } else {
@@ -346,17 +345,18 @@ const FieldCanvas = () => {
         mapsReady.push(forMap[key]);
       }
     }
-    console.log("mapsReady", mapsReady);
+    for (let key in maps) {
+      mapsReady.push(maps[key]);
+    }
     const data = {
-      svg: maps,
+      svg: mapsReady,
       build: nameNewBuild,
       obj: elements,
       floors: floors,
       rooms: {
         ...waypoints,
-        qr: [1, [227, 154]],
       },
-      login: "rawello",
+      login: login,
     };
     addRouteToDbFromFront(data);
   }
@@ -384,7 +384,7 @@ const FieldCanvas = () => {
       rooms: {
         ...waypoints,
       },
-      login: "rawello",
+      login: login,
     };
     editRoute(data);
   }
